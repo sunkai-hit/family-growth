@@ -1,4 +1,4 @@
-const RECORD_TYPES = new Set(["daily_homework","extra_work","exam_scores","teacher_feedback"]);
+const RECORD_TYPES = new Set(["daily_homework","extra_work","exam_scores","teacher_feedback","plan_progress"]);
 const CREATE = "CREATE TABLE IF NOT EXISTS user_records (id TEXT PRIMARY KEY, record_date TEXT NOT NULL, type TEXT NOT NULL, payload_json TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL, sync_status TEXT NOT NULL DEFAULT 'pending', commit_sha TEXT)";
 const INDEX = "CREATE INDEX IF NOT EXISTS idx_user_records_date_type ON user_records(record_date DESC, type)";
 
@@ -76,6 +76,17 @@ function validatePayload(type,payload){
       follow_up:cleanString(payload.follow_up,2000)
     };
     if(!out.content)throw Error("Feedback content is required");
+    return out;
+  }
+  if(type==="plan_progress"){
+    const out={
+      plan_id:cleanString(payload.plan_id,120),
+      status:["not_started","in_progress","completed","paused"].includes(payload.status)?payload.status:"in_progress",
+      completion_percent:numberOrNull(payload.completion_percent,0,100),
+      note:cleanString(payload.note,3000)
+    };
+    if(!out.plan_id)throw Error("Plan ID is required");
+    if(out.completion_percent==null)throw Error("Completion percent is required");
     return out;
   }
   throw Error("Unsupported record type");
