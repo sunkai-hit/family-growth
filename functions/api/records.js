@@ -99,8 +99,51 @@ function ghHeaders(token){
   return {
     "Accept":"application/vnd.github+json",
     "Authorization":"Bearer "+token,
-    "X-GitHub-Api-Version":"2026-03-10",
+    "X-GitHub-Api-Version":"2022-11-28",
     "User-Agent":"family-growth-workbench"
+  };
+}
+function ghFileUrl(path){
+  return "https://api.github.com/repos/sunkai-hit/family-growth/contents/"+path.split("/").map(encodeURIComponent).join("/");
+}
+async function readGitHubJson(token,path,fallback){
+  const res=await fetch(ghFileUrl(path)+"?ref=main",{headers:ghHeaders(token)});
+  if(res.status===404)return {data:fallback(),sha:null};
+  if(!res.ok)throw Error("GitHub read failed for "+path+": "+res.status);
+  const body=await res.json();
+  let data;
+  try{data=JSON.parse(fromBase64Utf8(body.content||""));}catch(_){data=fallback();}
+  return {data,sha:body.sha||null};
+}
+async function writeGitHubJson(token,path,data,sha,message){
+  const body={
+    message,
+    content:toBase64Utf8(JSON.stringify(data,null,2)+"\n"),
+    branch:"main"
+  };
+  if(sha)body.sha=sha;
+  const res=await fetch(ghFileUrl(path),{
+    method:"PUT",
+    headers:{...ghHeaders(token),"Content-Type":"application/json"},
+    body:JSON.stringify(body)
+  });
+  if(!res.ok)throw Error("GitHub write failed for "+path+": "+res.status+" "+(await res.text()).slice(0,300));
+  const written=await res.json();
+  return written.commit?.sha||"";
+}
+function summarizeMonth(month,path,data){
+  const records=Array.isArray(data.records)?data.records:[];
+  const dates=records.map(x=>x.record_date).filter(Boolean).sort();
+  const counts_by_type={};
+  for(const x of records)counts_by_type[x.type]=(counts_by_type[x.type]||0)+1;
+  return {
+    month,
+    path,
+    count:records.length,
+    first_date:dates[0]||null,
+    last_date:dates.length?dates[dates.length-1]:null,
+    counts_by_type,
+    updated_at:data.updated_at||new Date().toISOString()
   };
 }
 
@@ -108,48 +151,84 @@ async function syncPending(env,db){
   if(!env.GITHUB_TOKEN)return {synced:false,reason:"github_not_configured",count:0};
   const pending=await db.prepare("SELECT id,record_date,type,payload_json,created_at,updated_at FROM user_records WHERE sync_status!='synced' ORDER BY created_at ASC LIMIT 100").all();
   const items=pending.results||[];
-  if(!items.length)return {synced:true,count:0};
+  if(!items.length)return {synced:true,count:0,strategy:"monthly"};
 
-  const api="https://api.github.com/repos/sunkai-hit/family-growth/contents/data/records.json";
-  let current={version:1,updated_at:new Date().toISOString(),records:[]},sha=null;
-  const get=await fetch(api+"?ref=main",{headers:ghHeaders(env.GITHUB_TOKEN)});
-  if(get.ok){
-    const body=await get.json(); sha=body.sha;
-    try{current=JSON.parse(fromBase64Utf8(body.content||""));}catch(_){}
-  }else if(get.status!==404){
-    throw Error("GitHub read failed: "+get.status);
-  }
-  if(!Array.isArray(current.records))current.records=[];
-  const known=new Set(current.records.map(r=>r.id));
+  const groups=new Map();
   for(const row of items){
-    if(known.has(row.id))continue;
-    current.records.push({
-      id:row.id,record_date:row.record_date,type:row.type,
-      payload:JSON.parse(row.payload_json),created_at:row.created_at,updated_at:row.updated_at
-    });
-    known.add(row.id);
+    const month=row.record_date.slice(0,7);
+    if(!/^\d{4}-\d{2}$/.test(month))throw Error("Invalid record month");
+    if(!groups.has(month))groups.set(month,[]);
+    groups.get(month).push(row);
   }
-  current.version=1; current.updated_at=new Date().toISOString();
-  const body={
-    message:"[CF-Pages-Skip] data: sync "+items.length+" workbench record(s)",
-    content:toBase64Utf8(JSON.stringify(current,null,2)+"\n"),
-    branch:"main"
-  };
-  if(sha)body.sha=sha;
-  const put=await fetch(api,{method:"PUT",headers:{...ghHeaders(env.GITHUB_TOKEN),"Content-Type":"application/json"},body:JSON.stringify(body)});
-  if(!put.ok)throw Error("GitHub write failed: "+put.status+" "+(await put.text()).slice(0,300));
-  const written=await put.json();
-  const commitSha=written.commit?.sha||"";
-  const marks=items.map(x=>db.prepare("UPDATE user_records SET sync_status='synced', commit_sha=?, updated_at=? WHERE id=?").bind(commitSha,new Date().toISOString(),x.id));
+
+  const now=new Date().toISOString();
+  const monthSnapshots=new Map();
+  const recordCommits=new Map();
+
+  for(const [month,rows] of [...groups.entries()].sort((a,b)=>a[0].localeCompare(b[0]))){
+    const [year,mon]=month.split("-");
+    const path="data/records/"+year+"/"+mon+".json";
+    const current=await readGitHubJson(env.GITHUB_TOKEN,path,()=>({version:1,month,updated_at:now,records:[]}));
+    const data=current.data&&typeof current.data==="object"?current.data:{version:1,month,records:[]};
+    if(!Array.isArray(data.records))data.records=[];
+    const known=new Set(data.records.map(r=>r.id));
+    let added=0;
+    for(const row of rows){
+      if(known.has(row.id))continue;
+      data.records.push({
+        id:row.id,
+        record_date:row.record_date,
+        type:row.type,
+        payload:JSON.parse(row.payload_json),
+        created_at:row.created_at,
+        updated_at:row.updated_at
+      });
+      known.add(row.id);
+      added++;
+    }
+    data.records.sort((a,b)=>(a.record_date||"").localeCompare(b.record_date||"")||(a.created_at||"").localeCompare(b.created_at||""));
+    data.version=1;
+    data.month=month;
+    if(added)data.updated_at=now;
+
+    let monthCommit="";
+    if(added){
+      monthCommit=await writeGitHubJson(
+        env.GITHUB_TOKEN,path,data,current.sha,
+        "[CF-Pages-Skip] data: sync "+added+" record(s) to "+month
+      );
+    }
+    monthSnapshots.set(month,{path,data});
+    if(monthCommit)for(const row of rows)recordCommits.set(row.id,monthCommit);
+  }
+
+  const idx=await readGitHubJson(env.GITHUB_TOKEN,"data/records/index.json",()=>({version:1,strategy:"monthly",updated_at:now,total_records:0,months:[]}));
+  const indexData=idx.data&&typeof idx.data==="object"?idx.data:{};
+  const monthMap=new Map((Array.isArray(indexData.months)?indexData.months:[]).filter(x=>x&&x.month).map(x=>[x.month,x]));
+  for(const [month,snapshot] of monthSnapshots){
+    monthMap.set(month,summarizeMonth(month,snapshot.path,snapshot.data));
+  }
+  const months=[...monthMap.values()].sort((a,b)=>b.month.localeCompare(a.month));
+  indexData.version=1;
+  indexData.strategy="monthly";
+  indexData.updated_at=now;
+  indexData.total_records=months.reduce((n,x)=>n+(Number(x.count)||0),0);
+  indexData.months=months;
+  const indexCommit=await writeGitHubJson(
+    env.GITHUB_TOKEN,"data/records/index.json",indexData,idx.sha,
+    "[CF-Pages-Skip] data: update monthly record index"
+  );
+
+  const marks=items.map(x=>db.prepare("UPDATE user_records SET sync_status='synced', commit_sha=? WHERE id=?").bind(recordCommits.get(x.id)||indexCommit,x.id));
   if(marks.length)await db.batch(marks);
-  return {synced:true,count:items.length,commit_sha:commitSha};
+  return {synced:true,count:items.length,strategy:"monthly",months:[...groups.keys()].sort(),index_commit_sha:indexCommit};
 }
 
 export async function onRequestGet({env}){
   if(!env.DB)return send({ok:false,error:"D1 not configured"},503);
   await env.DB.batch([env.DB.prepare(CREATE),env.DB.prepare(INDEX)]);
   const rows=await env.DB.prepare("SELECT id,record_date,type,payload_json,created_at,updated_at,sync_status,commit_sha FROM user_records ORDER BY record_date DESC,created_at DESC LIMIT 1000").all();
-  return send({ok:true,records:(rows.results||[]).map(r=>({...r,payload:JSON.parse(r.payload_json)}))});
+  return send({ok:true,archive_strategy:"monthly-v1",records:(rows.results||[]).map(r=>({...r,payload:JSON.parse(r.payload_json)}))});
 }
 
 export async function onRequestPost({request,env}){
