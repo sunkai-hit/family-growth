@@ -140,3 +140,21 @@ textarea{resize:vertical}.edit-access{display:flex;justify-content:space-between
   .metric-cards{grid-template-columns:1fr}
   .pagination{gap:7px}.page-info{min-width:95px}
 }
+
+
+/* V0.4 device authorization gate */
+[hidden]{display:none!important}
+.auth-gate{min-height:100vh;display:grid;place-items:center;padding:24px;background:radial-gradient(circle at 50% 20%,#edf5e9 0,#f5f8f4 42%,#edf2ee 100%)}
+.auth-card{width:min(540px,100%);border:1px solid #dfe8e1;background:#fff;border-radius:22px;padding:34px;box-shadow:0 24px 70px #173f2f1a}
+.auth-brand{display:flex;align-items:center;gap:11px;margin-bottom:29px}.auth-brand .brand-mark{flex:none}.auth-brand strong{display:block;font-size:22px;color:#24473b;letter-spacing:2px}.auth-brand small{display:block;font-size:11px;color:#8ca197;margin-top:3px}
+.auth-card h1{font-size:27px;margin:7px 0 8px;color:#27493d}.auth-lead{font-size:12px;color:#6f857a;line-height:1.9;margin:0 0 24px}
+.auth-state{display:grid;gap:13px}.auth-state label{display:grid;gap:6px;font-size:11px;color:#6f847a}.auth-state small{color:#93a49b;font-size:10px;line-height:1.7}
+.auth-state>.button{justify-self:start}.auth-spinner{width:24px;height:24px;border-radius:50%;border:3px solid #dbe8df;border-top-color:#3f876c;animation:authspin .8s linear infinite}.auth-checking{align-items:center}
+@keyframes authspin{to{transform:rotate(360deg)}}
+.auth-chip{justify-self:start;padding:4px 9px;border-radius:999px;background:#fff2da;color:#946824;font-size:10px;font-weight:700}
+.auth-command{border:1px solid #dce7e0;background:#f5f9f5;border-radius:12px;padding:15px 17px;font-size:14px;color:#31584a}.auth-command strong{font-size:18px;letter-spacing:1.2px}
+.auth-pending p{margin:0;color:#667e73;font-size:11px}.auth-meta{font-size:10px!important;color:#8aa095!important}
+.auth-actions{display:flex;gap:8px;flex-wrap:wrap}
+.auth-message{margin-top:15px;border-radius:10px;padding:10px 12px;font-size:11px;background:#eef5ef;color:#356e57}.auth-message.error{background:#fdeceb;color:#96483f}.auth-message.info{background:#edf3f8;color:#4a6b80}
+#device-status{background:#edf5ef;color:#39765e}
+@media(max-width:600px){.auth-card{padding:25px 20px}.auth-actions{display:grid}.auth-actions .button{width:100%}}
