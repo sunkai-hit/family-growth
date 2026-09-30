@@ -1,5 +1,84 @@
 {
   "version": 1,
-  "updated_at": "2026-09-30T10:05:00+08:00",
-  "records": []
+  "updated_at": "2026-09-30T02:49:03.005Z",
+  "records": [
+    {
+      "id": "rec-muniavin-fd58ecfa",
+      "record_date": "2026-09-30",
+      "type": "daily_homework",
+      "payload": {
+        "subjects": [
+          {
+            "subject": "语文",
+            "status": "done",
+            "assigned_count": 10,
+            "completed_count": 10,
+            "wrong_count": 1,
+            "error_types": "根据语感选泽合适的句子",
+            "correction": "not_needed",
+            "duration_minutes": null,
+            "note": ""
+          },
+          {
+            "subject": "数学",
+            "status": "done",
+            "assigned_count": null,
+            "completed_count": null,
+            "wrong_count": null,
+            "error_types": "",
+            "correction": "not_needed",
+            "duration_minutes": null,
+            "note": ""
+          },
+          {
+            "subject": "英语",
+            "status": "done",
+            "assigned_count": null,
+            "completed_count": null,
+            "wrong_count": null,
+            "error_types": "",
+            "correction": "not_needed",
+            "duration_minutes": null,
+            "note": ""
+          },
+          {
+            "subject": "道法",
+            "status": "done",
+            "assigned_count": null,
+            "completed_count": null,
+            "wrong_count": null,
+            "error_types": "",
+            "correction": "not_needed",
+            "duration_minutes": null,
+            "note": ""
+          },
+          {
+            "subject": "历史",
+            "status": "done",
+            "assigned_count": null,
+            "completed_count": null,
+            "wrong_count": null,
+            "error_types": "",
+            "correction": "not_needed",
+            "duration_minutes": null,
+            "note": ""
+          },
+          {
+            "subject": "地理",
+            "status": "done",
+            "assigned_count": null,
+            "completed_count": null,
+            "wrong_count": null,
+            "error_types": "",
+            "correction": "not_needed",
+            "duration_minutes": null,
+            "note": ""
+          }
+        ],
+        "note": "作业完成顺利，孩子很高兴"
+      },
+      "created_at": "2026-09-30T02:49:02.482Z",
+      "updated_at": "2026-09-30T02:49:02.482Z"
+    }
+  ]
 }
