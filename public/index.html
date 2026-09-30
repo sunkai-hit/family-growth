@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#193833">
   <meta name="description" content="同频——对话驱动的家庭成长与学习记录工作台">
   <title>同频 · 家庭成长工作台</title>
-  <link rel="stylesheet" href="/style.css?v=20260930-3">
+  <link rel="stylesheet" href="/style.css?v=20260930-4">
 </head>
 <body>
 <div class="shell">
@@ -54,22 +54,6 @@
 
     <section class="page" id="page-records">
       <div class="section-intro"><h2>今日记录</h2><p>只有点击“提交”才会写入。保存到 D1 后会自动尝试归档到 GitHub，供后续 ChatGPT 分析读取。</p></div>
-
-      <article class="panel edit-access">
-        <div><span class="eyebrow">WRITE ACCESS</span><h3>编辑权限</h3><p>公开工作台保持可读；新增记录需要编辑码。编辑码只保存在当前设备浏览器，不会显示在页面上。</p></div>
-        <div class="edit-key-area">
-          <div id="edit-key-saved" class="edit-key-saved" hidden>
-            <span class="access-ok">✓ 编辑权限已保存</span>
-            <button id="change-edit-key" class="button pale" type="button">修改编辑码</button>
-            <button id="clear-edit-key" class="text-button" type="button">清除本机编辑码</button>
-          </div>
-          <div id="edit-key-editor" class="edit-key-box">
-            <input id="edit-key" type="password" placeholder="输入 Cloudflare 中配置的编辑码" autocomplete="off">
-            <button id="save-edit-key" class="button pale" type="button">保存到本机</button>
-            <button id="cancel-edit-key" class="text-button" type="button" hidden>取消</button>
-          </div>
-        </div>
-      </article>
 
       <div class="record-tabs" role="tablist">
         <button class="record-tab active" data-record-tab="daily">学校作业</button>
@@ -123,36 +107,59 @@
       <article class="panel">
         <div class="panel-title"><div><span class="eyebrow">LEDGER</span><h3>记录台账</h3></div><div class="filters"><select id="record-filter-type"><option value="">全部类型</option><option value="daily_homework">学校作业</option><option value="extra_work">额外作业</option><option value="exam_scores">考试成绩</option><option value="teacher_feedback">老师反馈</option></select><input id="record-filter-date" type="date"><button id="clear-record-filter" class="text-button">清除筛选</button></div></div>
         <div id="record-ledger"></div>
+        <div id="record-pagination" class="pagination"></div>
+      </article>
+
+      <article class="panel edit-access compact-access">
+        <div><span class="eyebrow">WRITE ACCESS</span><h3>编辑权限</h3><p>新增记录需要编辑码；编辑码只保存在当前设备浏览器。</p></div>
+        <div class="edit-key-area">
+          <div id="edit-key-saved" class="edit-key-saved" hidden>
+            <span class="access-ok">✓ 编辑权限已保存</span>
+            <button id="change-edit-key" class="button pale" type="button">修改</button>
+            <button id="clear-edit-key" class="text-button" type="button">清除</button>
+          </div>
+          <div id="edit-key-editor" class="edit-key-box">
+            <input id="edit-key" type="password" placeholder="输入编辑码" autocomplete="off">
+            <button id="save-edit-key" class="button pale" type="button">保存到本机</button>
+            <button id="cancel-edit-key" class="text-button" type="button" hidden>取消</button>
+          </div>
+        </div>
       </article>
     </section>
 
     <section class="page" id="page-conversations">
       <div class="section-intro"><h2>对话档案</h2><p>还原讨论过程；摘要会明确标注，不会冒充逐字对话。</p></div>
       <div class="toolbar"><label>查找 <input type="search" id="chat-search" placeholder="搜索对话内容…" autocomplete="off"></label><span id="chat-total"></span></div>
-      <article class="panel"><div id="conversation-list"></div></article>
+      <article class="panel"><div id="conversation-list"></div><div id="conversation-pagination" class="pagination"></div></article>
     </section>
 
     <section class="page" id="page-timeline">
       <div class="section-intro"><h2>成长时间线</h2><p>将家庭反馈和待验证的分析假设分别保留。</p></div>
-      <div class="timeline" id="timeline-list"></div>
+      <div class="timeline" id="timeline-list"></div><div id="timeline-pagination" class="pagination"></div>
     </section>
 
     <section class="page" id="page-trends">
-      <div class="section-intro"><h2>趋势分析</h2><p>考试成绩会自动转换为得分率；额外作业可按题量、错题率和用时形成趋势。数据不足时不会强行画趋势线。</p></div>
+      <div class="section-intro"><h2>趋势分析</h2><p>指标固定，避免每次录入产生新的指标名称。可按科目筛选；数据不足时只显示已有单点，不强行判断趋势。</p></div>
+      <div id="trend-summary" class="metric-cards"></div>
       <article class="panel">
-        <div class="panel-title"><h3>时间趋势</h3><label class="indicator">指标 <select id="metric-select"><option>暂无指标</option></select></label></div>
+        <div class="panel-title trend-controls"><h3>时间趋势</h3><div class="filters"><label>指标 <select id="metric-select"></select></label><label>科目 <select id="subject-select"><option value="">全部科目</option></select></label></div></div>
         <div id="chart" class="chart-region"></div>
       </article>
     </section>
 
     <section class="page" id="page-plans">
       <div class="section-intro"><h2>计划与报告</h2><p>将建议稿、已确认计划与实际执行结果区分开。</p></div>
-      <div class="split"><article class="panel"><div class="panel-title"><h3>计划</h3></div><div id="plans-list"></div></article><article class="panel"><div class="panel-title"><h3>分析报告</h3></div><div id="reports-list"></div></article></div>
+      <div class="split"><article class="panel"><div class="panel-title"><h3>计划</h3></div><div id="plans-list"></div><div id="plans-pagination" class="pagination"></div></article><article class="panel"><div class="panel-title"><h3>分析报告</h3></div><div id="reports-list"></div><div id="reports-pagination" class="pagination"></div></article></div>
     </section>
 
-    <footer><span>同频 · 家庭成长工作台 · V0.2.2</span><span>数据由 GitHub 归档，经 Cloudflare D1 呈现</span></footer>
+    <section class="page" id="page-detail">
+      <div class="detail-head"><button id="detail-back" class="button pale" type="button">← 返回</button><div><span id="detail-type" class="eyebrow">DETAIL</span><h2 id="detail-title">详情</h2><p id="detail-meta"></p></div></div>
+      <article class="panel detail-panel"><div id="detail-content"></div></article>
+    </section>
+
+    <footer><span>同频 · 家庭成长工作台 · V0.3</span><span>数据由 GitHub 归档，经 Cloudflare D1 呈现</span></footer>
   </main>
 </div>
-<script src="/app.js?v=20260930-3" defer></script>
+<script src="/app.js?v=20260930-4" defer></script>
 </body>
 </html>
