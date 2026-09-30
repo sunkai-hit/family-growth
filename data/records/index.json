@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "strategy": "monthly",
+  "updated_at": "2026-09-30T02:49:03.005Z",
+  "total_records": 1,
+  "months": [
+    {
+      "month": "2026-09",
+      "path": "data/records/2026/09.json",
+      "count": 1,
+      "first_date": "2026-09-30",
+      "last_date": "2026-09-30",
+      "counts_by_type": {
+        "daily_homework": 1
+      },
+      "updated_at": "2026-09-30T02:49:03.005Z"
+    }
+  ]
+}
