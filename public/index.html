@@ -2,9 +2,9 @@
 <html lang="zh-CN">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#193833">
-  <meta name="description" content="同频——以持续对话为中心的家庭成长工作台">
+  <meta name="description" content="同频——对话驱动的家庭成长与学习记录工作台">
   <title>同频 · 家庭成长工作台</title>
   <link rel="stylesheet" href="/style.css">
 </head>
@@ -14,39 +14,104 @@
     <div class="brand"><div class="brand-mark">同</div><div><strong>同频</strong><small>家庭成长工作台</small></div></div>
     <span class="sidebar-label">个人空间</span>
     <nav aria-label="工作台导航">
-      <button class="nav active" data-page="home"><span>◈</span> 成长总览</button>
-      <button class="nav" data-page="conversations"><span>▤</span> 对话档案</button>
-      <button class="nav" data-page="timeline"><span>◷</span> 成长时间线</button>
-      <button class="nav" data-page="trends"><span>⌁</span> 趋势分析</button>
-      <button class="nav" data-page="plans"><span>☑</span> 计划与报告</button>
+      <button class="nav active" data-page="home"><span>◈</span>成长总览</button>
+      <button class="nav" data-page="records"><span>＋</span>今日记录</button>
+      <button class="nav" data-page="conversations"><span>▤</span>对话档案</button>
+      <button class="nav" data-page="timeline"><span>◷</span>成长时间线</button>
+      <button class="nav" data-page="trends"><span>⌁</span>趋势分析</button>
+      <button class="nav" data-page="plans"><span>☑</span>计划与报告</button>
     </nav>
-    <div class="sidebar-foot"><span class="online-dot"></span> GitHub + Cloudflare D1 <small>此站只展示已同步的讨论。<br>继续在 ChatGPT 中交流。</small></div>
+    <div class="sidebar-foot"><span class="online-dot"></span> GitHub + Cloudflare D1<small>点击“提交”才写入；聊天不会自动写入。</small></div>
   </aside>
+
   <main class="main">
     <header class="heading">
-      <div><span class="eyebrow">FAMILY GROWTH WORKSPACE</span><h1 id="section-title">和成长，保持同频。</h1><p id="section-subtitle">对话驱动的成长档案，让讨论形成长期积累。</p></div>
+      <div><span class="eyebrow">FAMILY GROWTH WORKSPACE</span><h1 id="section-title">和成长，保持同频。</h1><p id="section-subtitle">对话驱动的成长档案，让讨论和真实记录形成长期积累。</p></div>
       <div class="heading-actions"><span id="sync-status" class="status">● 正在读取云端</span><button id="refresh" class="button pale" type="button">↻ 刷新</button></div>
     </header>
     <div id="notice" class="notice" role="status" hidden></div>
 
     <section class="page active" id="page-home">
       <div class="hero">
-        <div><span class="eyebrow">UNDERSTAND · SUPPORT · GROW</span><h2>先理解变化，<br>再决定下一步。</h2><p>保留讨论过的事实、需要验证的推测与行动建议。趋势图只基于真实记录，不把教育问题简单归结为一个分数。</p><button class="button dark" data-goto="conversations">查看已同步对话 ↗</button></div>
-        <div class="hero-art"><div class="art-ring"></div><div class="art-core"><span>观察</span><span>理解</span><span>行动</span></div></div>
+        <div><span class="eyebrow">UNDERSTAND · RECORD · GROW</span><h2>先记录事实，<br>再理解变化。</h2><p>把讨论、学校作业、额外学习、考试成绩和老师反馈放在同一条时间线上。趋势只基于真实记录，不把相关性直接当作因果。</p><button class="button dark" data-goto="records">记录今天 ↗</button></div>
+        <div class="hero-art"><div class="art-ring"></div><div class="art-core"><span>观察</span><span>记录</span><span>行动</span></div></div>
       </div>
       <div class="stats">
-        <div class="stat"><span>已归档对话</span><strong id="count-conversations">—</strong><small>原文与摘要分别标记</small></div>
-        <div class="stat"><span>观察与假设</span><strong id="count-observations">—</strong><small>标明事实与推测</small></div>
-        <div class="stat"><span>量化记录</span><strong id="count-metrics">—</strong><small>无数据时不绘制趋势</small></div>
+        <div class="stat"><span>对话档案</span><strong id="count-conversations">—</strong><small>原文与摘要分开标记</small></div>
+        <div class="stat"><span>日常记录</span><strong id="count-records">—</strong><small>网站提交的真实记录</small></div>
+        <div class="stat"><span>观察与假设</span><strong id="count-observations">—</strong><small>事实和判断不混淆</small></div>
         <div class="stat"><span>待跟进计划</span><strong id="count-plans">—</strong><small>建议不等于已执行</small></div>
       </div>
       <div class="split">
-        <article class="panel"><div class="panel-title"><div><span class="eyebrow">CONVERSATIONS</span><h3>最近讨论</h3></div><button class="text-button" data-goto="conversations">全部对话 ↗</button></div><div id="home-conversations"></div></article>
-        <article class="panel"><div class="panel-title"><div><span class="eyebrow">OBSERVATIONS</span><h3>近期观察</h3></div><button class="text-button" data-goto="timeline">时间线 ↗</button></div><div id="home-observations"></div></article>
+        <article class="panel"><div class="panel-title"><div><span class="eyebrow">RECENT RECORDS</span><h3>最近记录</h3></div><button class="text-button" data-goto="records">全部记录 ↗</button></div><div id="home-records"></div></article>
+        <article class="panel"><div class="panel-title"><div><span class="eyebrow">CONVERSATIONS</span><h3>最近讨论</h3></div><button class="text-button" data-goto="conversations">对话档案 ↗</button></div><div id="home-conversations"></div></article>
       </div>
       <article class="panel discussion">
-        <div><h3>继续我们的讨论</h3><p>工作台用于查看和分析资料；真正的交流依然在原来的 ChatGPT 中进行。</p></div>
-        <div class="actions"><button id="copy-context" class="button pale">复制讨论背景</button><a class="button dark" href="https://chatgpt.com/" target="_blank" rel="noopener noreferrer">打开 ChatGPT ↗</a></div>
+        <div><h3>继续我们的讨论</h3><p>工作台负责记录和分析，深入讨论继续在 ChatGPT 中进行。</p></div>
+        <div class="actions"><button id="copy-context" class="button pale">复制最新背景</button><a class="button dark" href="https://chatgpt.com/" target="_blank" rel="noopener noreferrer">打开 ChatGPT ↗</a></div>
+      </article>
+    </section>
+
+    <section class="page" id="page-records">
+      <div class="section-intro"><h2>今日记录</h2><p>只有点击“提交”才会写入。保存到 D1 后会自动尝试归档到 GitHub，供后续 ChatGPT 分析读取。</p></div>
+
+      <article class="panel edit-access">
+        <div><span class="eyebrow">WRITE ACCESS</span><h3>编辑码</h3><p>公开工作台保持可读；新增记录需要编辑码。编辑码只保存在当前设备浏览器。</p></div>
+        <div class="edit-key-box"><input id="edit-key" type="password" placeholder="输入 Cloudflare 中配置的编辑码" autocomplete="current-password"><button id="save-edit-key" class="button pale">保存到本机</button><button id="clear-edit-key" class="text-button">清除</button></div>
+      </article>
+
+      <div class="record-tabs" role="tablist">
+        <button class="record-tab active" data-record-tab="daily">学校作业</button>
+        <button class="record-tab" data-record-tab="extra">额外作业</button>
+        <button class="record-tab" data-record-tab="exam">考试成绩</button>
+        <button class="record-tab" data-record-tab="feedback">老师反馈</button>
+      </div>
+
+      <article class="panel record-form active" id="record-form-daily">
+        <div class="form-head"><div><span class="eyebrow">DAILY HOMEWORK</span><h3>每日学校作业</h3></div><label>日期<input id="daily-date" type="date"></label></div>
+        <p class="helper">按科目记录完成情况、错题数量、题型/知识点和订正状态。没有必要填写的数字可以留空。</p>
+        <div class="subject-table-wrap"><table class="subject-table"><thead><tr><th>科目</th><th>完成情况</th><th>题目数</th><th>完成数</th><th>错题数</th><th>错题题型 / 知识点</th><th>订正</th><th>用时</th><th></th></tr></thead><tbody id="daily-subjects"></tbody></table></div>
+        <div class="form-bottom"><button class="button pale" id="add-daily-subject">＋ 添加科目</button><label class="grow">当天备注<textarea id="daily-note" rows="2" placeholder="例如：作业整体比较顺利；数学最后两题耗时较长"></textarea></label><button class="button dark submit-record" data-submit="daily">提交今日作业</button></div>
+      </article>
+
+      <article class="panel record-form" id="record-form-extra">
+        <div class="form-head"><div><span class="eyebrow">EXTRA STUDY</span><h3>额外作业</h3></div><label>日期<input id="extra-date" type="date"></label></div>
+        <div class="form-grid">
+          <label>科目<input id="extra-subject" placeholder="如：数学"></label>
+          <label class="span2">内容<input id="extra-content" placeholder="如：一次函数专项练习"></label>
+          <label>计划题量<input id="extra-planned" type="number" min="0"></label>
+          <label>实际完成<input id="extra-completed" type="number" min="0"></label>
+          <label>错题数<input id="extra-wrong" type="number" min="0"></label>
+          <label>用时（分钟）<input id="extra-duration" type="number" min="0"></label>
+          <label>完成方式<select id="extra-independence"><option value="independent">独立完成</option><option value="with_help">有提示 / 帮助</option><option value="reference">参考答案 / 资料</option></select></label>
+          <label class="span2">错题题型 / 知识点<input id="extra-errors" placeholder="例如：动点问题、分类讨论"></label>
+          <label class="span3">备注<textarea id="extra-note" rows="2"></textarea></label>
+        </div>
+        <div class="form-actions"><button class="button dark submit-record" data-submit="extra">提交额外作业</button></div>
+      </article>
+
+      <article class="panel record-form" id="record-form-exam">
+        <div class="form-head"><div><span class="eyebrow">EXAM SCORES</span><h3>考试成绩</h3></div><label>考试日期<input id="exam-date" type="date"></label></div>
+        <div class="form-grid compact"><label class="span2">考试名称<input id="exam-name" placeholder="如：初二第一次月考"></label><label class="span3">整体备注<input id="exam-note" placeholder="可选"></label></div>
+        <div class="subject-table-wrap"><table class="subject-table"><thead><tr><th>科目</th><th>得分</th><th>满分</th><th>错题数</th><th>主要错因 / 题型</th><th>班级排名</th><th>年级排名</th><th></th></tr></thead><tbody id="exam-subjects"></tbody></table></div>
+        <div class="form-actions"><button class="button pale" id="add-exam-subject">＋ 添加科目</button><button class="button dark submit-record" data-submit="exam">提交考试成绩</button></div>
+      </article>
+
+      <article class="panel record-form" id="record-form-feedback">
+        <div class="form-head"><div><span class="eyebrow">TEACHER FEEDBACK</span><h3>老师反馈</h3></div><label>日期<input id="feedback-date" type="date"></label></div>
+        <div class="form-grid">
+          <label>科目<input id="feedback-subject" placeholder="可填：数学 / 班主任 / 综合"></label>
+          <label>来源<input id="feedback-source" placeholder="如：数学老师、班主任"></label>
+          <label>类型<select id="feedback-category"><option value="positive">积极反馈</option><option value="neutral">一般观察</option><option value="reminder">提醒</option><option value="problem">需要关注</option></select></label>
+          <label class="span3">反馈内容<textarea id="feedback-content" rows="3" placeholder="尽量记录老师原意，必要时注明是概括"></textarea></label>
+          <label class="span3">后续处理<textarea id="feedback-follow" rows="2" placeholder="例如：先观察一周；和孩子沟通某个问题"></textarea></label>
+        </div>
+        <div class="form-actions"><button class="button dark submit-record" data-submit="feedback">提交老师反馈</button></div>
+      </article>
+
+      <article class="panel">
+        <div class="panel-title"><div><span class="eyebrow">LEDGER</span><h3>记录台账</h3></div><div class="filters"><select id="record-filter-type"><option value="">全部类型</option><option value="daily_homework">学校作业</option><option value="extra_work">额外作业</option><option value="exam_scores">考试成绩</option><option value="teacher_feedback">老师反馈</option></select><input id="record-filter-date" type="date"><button id="clear-record-filter" class="text-button">清除筛选</button></div></div>
+        <div id="record-ledger"></div>
       </article>
     </section>
 
@@ -57,12 +122,12 @@
     </section>
 
     <section class="page" id="page-timeline">
-      <div class="section-intro"><h2>成长时间线</h2><p>将家庭反馈和待验证的分析假设分别保留，方便回看。</p></div>
+      <div class="section-intro"><h2>成长时间线</h2><p>将家庭反馈和待验证的分析假设分别保留。</p></div>
       <div class="timeline" id="timeline-list"></div>
     </section>
 
     <section class="page" id="page-trends">
-      <div class="section-intro"><h2>趋势分析</h2><p>只依据持续录入的真实数据，不将时间上的同时变化简单认定为因果。</p></div>
+      <div class="section-intro"><h2>趋势分析</h2><p>考试成绩会自动转换为得分率；额外作业可按题量、错题率和用时形成趋势。数据不足时不会强行画趋势线。</p></div>
       <article class="panel">
         <div class="panel-title"><h3>时间趋势</h3><label class="indicator">指标 <select id="metric-select"><option>暂无指标</option></select></label></div>
         <div id="chart" class="chart-region"></div>
@@ -70,9 +135,10 @@
     </section>
 
     <section class="page" id="page-plans">
-      <div class="section-intro"><h2>计划与报告</h2><p>将建议稿、已确认的计划与实际执行结果区分开。</p></div>
+      <div class="section-intro"><h2>计划与报告</h2><p>将建议稿、已确认计划与实际执行结果区分开。</p></div>
       <div class="split"><article class="panel"><div class="panel-title"><h3>计划</h3></div><div id="plans-list"></div></article><article class="panel"><div class="panel-title"><h3>分析报告</h3></div><div id="reports-list"></div></article></div>
     </section>
+
     <footer><span>同频 · 家庭成长工作台</span><span>数据由 GitHub 归档，经 Cloudflare D1 呈现</span></footer>
   </main>
 </div>
