@@ -60,3 +60,40 @@ CREATE TABLE IF NOT EXISTS user_records (
   commit_sha TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_user_records_date_type ON user_records(record_date DESC,type);
+
+
+-- V0.4 device authorization. No private key or edit code is stored here.
+CREATE TABLE IF NOT EXISTS authorized_devices (
+  device_id TEXT PRIMARY KEY,
+  label TEXT NOT NULL,
+  public_jwk TEXT NOT NULL,
+  status TEXT NOT NULL,
+  approved_at TEXT NOT NULL,
+  last_seen_at TEXT
+);
+
+CREATE TABLE IF NOT EXISTS auth_requests (
+  request_code TEXT PRIMARY KEY,
+  device_id TEXT NOT NULL,
+  label TEXT NOT NULL,
+  public_jwk TEXT NOT NULL,
+  requested_at TEXT NOT NULL,
+  expires_at TEXT NOT NULL,
+  status TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS auth_challenges (
+  challenge_id TEXT PRIMARY KEY,
+  device_id TEXT NOT NULL,
+  challenge_text TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  expires_at TEXT NOT NULL,
+  used INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS auth_sessions (
+  token_hash TEXT PRIMARY KEY,
+  device_id TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  expires_at TEXT NOT NULL
+);
