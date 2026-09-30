@@ -1,6 +1,6 @@
 # 同频 · 家庭成长工作台
 
-在线版 V0.2。ChatGPT 负责持续交流和分析，GitHub 负责版本化归档，Cloudflare Pages + D1 负责跨设备在线访问和结构化记录。
+在线版 V0.2.2。ChatGPT 负责持续交流和分析，GitHub 负责版本化归档，Cloudflare Pages + D1 负责跨设备在线访问和结构化记录。
 
 ## 运行结构
 
@@ -8,7 +8,8 @@
 - \`functions/api/state.js\`：读取最新 GitHub 对话数据并与 D1 对齐，同时返回用户录入记录。
 - \`functions/api/records.js\`：只有点击网页“提交”时才调用。先写入 D1，再自动尝试把待归档记录合并写入 GitHub。
 - \`public/data/workbench.json\`：ChatGPT 同步的对话、观察、计划和分析报告。
-- \`data/records.json\`：网页录入的学校作业、额外作业、考试成绩和老师反馈。
+- `data/records/index.json`：网站记录的轻量索引，保存月份、记录数和类型统计。
+- `data/records/YYYY/MM.json`：网页录入的学校作业、额外作业、考试成绩和老师反馈，按月归档。
 - \`schema.sql\`：D1 数据结构说明。
 - \`wrangler.toml\`：Pages / D1 绑定。
 
@@ -29,6 +30,25 @@
 
 趋势页会从真实记录自动派生考试得分率、额外作业完成题量/错题率/用时、学校作业错题数/用时。只有一条数据时只展示单点说明，不强行判断趋势。
 
+
+## GitHub 月度归档策略
+
+D1 是网站查询和趋势分析的主业务存储；GitHub 是长期、可版本化的归档层。
+
+```text
+data/
+└─ records/
+   ├─ index.json
+   ├─ 2026/
+   │  ├─ 09.json
+   │  ├─ 10.json
+   │  └─ 11.json
+   └─ 2027/
+      └─ 01.json
+```
+
+每次网站提交只会更新记录所属月份的 JSON 和 `index.json`，不会读取、重写全部历史记录。跨月补录时会写入对应历史月份。索引中保留每月记录数、日期范围和各类型数量，方便 ChatGPT 先定位月份再读取原始数据。
+
 ## 首次启用网站写入
 
 Cloudflare Pages 项目需要两个 Secret：
@@ -44,9 +64,9 @@ Secret 必须在使用它的部署之前配置。配置后重新部署一次当�
 
 ## 免费额度设计
 
-数据提交不触发 Pages 构建，因此日常使用主要消耗少量 Workers 请求、D1 行读写和 GitHub REST API 请求。一个网页提交通常产生一条 D1 业务记录（另有少量状态更新）和约两次 GitHub API 请求；失败的待归档记录会在下一次正常提交时批量补同步。
+数据提交不触发 Pages 构建，因此日常使用主要消耗少量 Workers 请求、D1 行读写和 GitHub REST API 请求。一个网页提交通常产生一条 D1 业务记录（另有少量状态更新），并更新“当月 JSON + 索引 JSON”。一般约 4 次 GitHub REST 请求（读取/写入当月文件与索引）；失败的待归档记录会在下一次正常提交时批量补同步。即使日常每天多次提交，也远低于免费额度。
 
-网站本身不会把记录直接“注入”某个 ChatGPT 会话。ChatGPT 后续通过 GitHub 读取 \`data/records.json\` 获取网站录入内容。
+网站本身不会把记录直接“注入”某个 ChatGPT 会话。ChatGPT 后续先读取 GitHub 的 `data/records/index.json` 判断需要哪些月份，再按需读取 `data/records/YYYY/MM.json`。
 
 ## 数据边界
 
