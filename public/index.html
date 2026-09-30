@@ -6,10 +6,44 @@
   <meta name="theme-color" content="#193833">
   <meta name="description" content="同频——对话驱动的家庭成长与学习记录工作台">
   <title>同频 · 家庭成长工作台</title>
-  <link rel="stylesheet" href="/style.css?v=20260930-4">
+  <link rel="stylesheet" href="/style.css?v=20260930-5">
 </head>
 <body>
-<div class="shell">
+<div id="auth-gate" class="auth-gate">
+  <div class="auth-card">
+    <div class="auth-brand"><div class="brand-mark">同</div><div><strong>同频</strong><small>家庭成长工作台</small></div></div>
+    <span class="eyebrow">DEVICE AUTHORIZATION</span>
+    <h1>先授权这台设备</h1>
+    <p class="auth-lead">授权完成前，工作台不会请求或显示任何家庭成长数据。首次授权需要编辑码，并由你在 ChatGPT 中人工确认。</p>
+
+    <div id="auth-checking" class="auth-state">
+      <div class="auth-spinner"></div><strong>正在验证此设备…</strong>
+    </div>
+
+    <div id="auth-request" class="auth-state" hidden>
+      <label>设备名称<input id="device-label" maxlength="80" placeholder="例如：办公室电脑 Edge"></label>
+      <label>编辑码<input id="auth-edit-code" type="password" autocomplete="off" placeholder="输入工作台编辑码"></label>
+      <button id="request-device-auth" class="button dark" type="button">申请设备授权</button>
+      <small>编辑码只用于发起本次申请，不会保存到浏览器、GitHub 或 D1。</small>
+    </div>
+
+    <div id="auth-pending" class="auth-state" hidden>
+      <span class="auth-chip">等待 GPT 人工确认</span>
+      <p>请在当前 ChatGPT 对话中发送：</p>
+      <div class="auth-command">授权设备 <strong id="auth-request-code">—</strong></div>
+      <p id="auth-pending-meta" class="auth-meta"></p>
+      <div class="auth-actions">
+        <button id="check-auth-status" class="button dark" type="button">我已在 GPT 确认，检查授权</button>
+        <button id="cancel-auth-request" class="button pale" type="button">重新申请</button>
+      </div>
+      <small>申请有效期 30 分钟。授权后，本浏览器将使用本地设备私钥自动验证，不需要每天重复授权。</small>
+    </div>
+
+    <div id="auth-message" class="auth-message" hidden></div>
+  </div>
+</div>
+
+<div id="app-shell" class="shell" hidden>
   <aside class="sidebar">
     <div class="brand"><div class="brand-mark">同</div><div><strong>同频</strong><small>家庭成长工作台</small></div></div>
     <span class="sidebar-label">个人空间</span>
@@ -27,7 +61,7 @@
   <main class="main">
     <header class="heading">
       <div><span class="eyebrow">FAMILY GROWTH WORKSPACE</span><h1 id="section-title">和成长，保持同频。</h1><p id="section-subtitle">对话驱动的成长档案，让讨论和真实记录形成长期积累。</p></div>
-      <div class="heading-actions"><span id="sync-status" class="status">● 正在读取云端</span><button id="refresh" class="button pale" type="button">↻ 刷新</button></div>
+      <div class="heading-actions"><span id="device-status" class="status">✓ 已授权设备</span><span id="sync-status" class="status">● 正在读取云端</span><button id="refresh" class="button pale" type="button">↻ 刷新</button></div>
     </header>
     <div id="notice" class="notice" role="status" hidden></div>
 
@@ -110,21 +144,6 @@
         <div id="record-pagination" class="pagination"></div>
       </article>
 
-      <article class="panel edit-access compact-access">
-        <div><span class="eyebrow">WRITE ACCESS</span><h3>编辑权限</h3><p>新增记录需要编辑码；编辑码只保存在当前设备浏览器。</p></div>
-        <div class="edit-key-area">
-          <div id="edit-key-saved" class="edit-key-saved" hidden>
-            <span class="access-ok">✓ 编辑权限已保存</span>
-            <button id="change-edit-key" class="button pale" type="button">修改</button>
-            <button id="clear-edit-key" class="text-button" type="button">清除</button>
-          </div>
-          <div id="edit-key-editor" class="edit-key-box">
-            <input id="edit-key" type="password" placeholder="输入编辑码" autocomplete="off">
-            <button id="save-edit-key" class="button pale" type="button">保存到本机</button>
-            <button id="cancel-edit-key" class="text-button" type="button" hidden>取消</button>
-          </div>
-        </div>
-      </article>
     </section>
 
     <section class="page" id="page-conversations">
@@ -157,9 +176,9 @@
       <article class="panel detail-panel"><div id="detail-content"></div></article>
     </section>
 
-    <footer><span>同频 · 家庭成长工作台 · V0.3</span><span>数据由 GitHub 归档，经 Cloudflare D1 呈现</span></footer>
+    <footer><span>同频 · 家庭成长工作台 · V0.4</span><span>数据由 GitHub 归档，经 Cloudflare D1 呈现</span></footer>
   </main>
 </div>
-<script src="/app.js?v=20260930-4" defer></script>
+<script src="/app.js?v=20260930-5" defer></script>
 </body>
 </html>
