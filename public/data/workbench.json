@@ -1,0 +1,83 @@
+{
+  "version": 1,
+  "updated_at": "2026-09-30T09:00:00+08:00",
+  "conversations": [
+    {
+      "id": "summary-20260930-01",
+      "session_id": "initial",
+      "occurred_on": "2026-09-30",
+      "role": "user",
+      "source_kind": "summary",
+      "content": "家庭反馈：学校课堂和学校作业完成认真；与上一学年相比，家庭额外学习投入减少，成绩略有下降。"
+    },
+    {
+      "id": "summary-20260930-02",
+      "session_id": "initial",
+      "occurred_on": "2026-09-30",
+      "role": "assistant",
+      "source_kind": "summary",
+      "content": "讨论建议：区分学校任务与额外练习。与其直接恢复高强度刷题，不如先共同制定适量、可持续的课外计划。"
+    },
+    {
+      "id": "summary-20260930-03",
+      "session_id": "initial",
+      "occurred_on": "2026-09-30",
+      "role": "user",
+      "source_kind": "summary",
+      "content": "家庭反馈：希望利用国庆假期准备假期后的月考，同时改善课外练习安排与亲子沟通。"
+    },
+    {
+      "id": "summary-20260930-04",
+      "session_id": "initial",
+      "occurred_on": "2026-09-30",
+      "role": "assistant",
+      "source_kind": "summary",
+      "content": "讨论建议：学校作业优先，按实际薄弱点安排少量专项复习，保留自由阅读和休息时间，月考后再结合实际成绩与执行情况调整。"
+    }
+  ],
+  "observations": [
+    {
+      "id": "obs-01",
+      "occurred_on": "2026-09-30",
+      "kind": "fact",
+      "category": "学校学习",
+      "content": "据家长反馈：学校课堂及学校作业完成认真。",
+      "source": "家庭反馈"
+    },
+    {
+      "id": "obs-02",
+      "occurred_on": "2026-09-30",
+      "kind": "fact",
+      "category": "学习投入",
+      "content": "据家长反馈：家庭额外学习投入较上学年减少，成绩略有下降。",
+      "source": "家庭反馈"
+    },
+    {
+      "id": "obs-03",
+      "occurred_on": "2026-09-30",
+      "kind": "hypothesis",
+      "category": "亲子沟通",
+      "content": "对额外练习的抵触可能涉及自主安排时间的需要；仍需通过沟通验证。",
+      "source": "对话中的假设"
+    }
+  ],
+  "metrics": [],
+  "plans": [
+    {
+      "id": "plan-holiday",
+      "title": "国庆月考准备（建议稿）",
+      "start_date": "2026-10-01",
+      "end_date": "2026-10-07",
+      "status": "suggested",
+      "details": "学校作业优先；选择一至两个真实薄弱点进行少量复习；安排家庭活动与自由阅读；假期结束和月考后分别复盘。是否执行、具体内容与时间由家庭共同确定。"
+    }
+  ],
+  "reports": [
+    {
+      "id": "report-initial",
+      "occurred_on": "2026-09-30",
+      "title": "学习投入变化与家庭沟通：初始分析",
+      "content": "学校学习表现认真，是目前讨论的重要背景。课外投入减少和成绩波动可能相关，但不能仅凭这两点认定因果。建议关注真实学习困难、任务协商及月考后的知识点分析。"
+    }
+  ]
+}
