@@ -1,47 +1,53 @@
 # 同频 · 家庭成长工作台
 
-在线版 V0.1。**ChatGPT 负责继续交流；GitHub 负责版本化存储；Cloudflare Pages 提供跨设备在线网站，D1 提供结构化数据索引。**
+在线版 V0.2。ChatGPT 负责持续交流和分析，GitHub 负责版本化归档，Cloudflare Pages + D1 负责跨设备在线访问和结构化记录。
 
-目前是只读工作台，不是假装与当前 ChatGPT 会话实时相连的独立聊天机器人。
+## 运行结构
 
-## 一、一次性在线部署（首次需仓库所有人完成授权）
+- \`public/\`：在线工作台前端。
+- \`functions/api/state.js\`：读取最新 GitHub 对话数据并与 D1 对齐，同时返回用户录入记录。
+- \`functions/api/records.js\`：只有点击网页“提交”时才调用。先写入 D1，再自动尝试把待归档记录合并写入 GitHub。
+- \`public/data/workbench.json\`：ChatGPT 同步的对话、观察、计划和分析报告。
+- \`data/records.json\`：网页录入的学校作业、额外作业、考试成绩和老师反馈。
+- \`schema.sql\`：D1 数据结构说明。
+- \`wrangler.toml\`：Pages / D1 绑定。
 
-1. 登录 [Cloudflare Dashboard](https://dash.cloudflare.com/)，进入 **Workers & Pages → Create → Pages → Connect to Git**（界面名称可能略有调整）。
-2. 选择 GitHub，授权 Cloudflare 访问此仓库：\`sunkai-hit/family-growth\`。
-3. 使用以下配置：项目名称建议 \`family-growth\`；生产分支 \`main\`；**构建命令留空**；**构建输出目录为 \`public\`**；根目录保持默认。
-4. 仓库中的 \`wrangler.toml\` 已声明 D1 绑定 \`DB\`，数据库为 \`family-growth-db\`。若 Cloudflare 没有自动识别，进入项目 Settings → Bindings，添加 D1 数据库绑定，变量名必须为 \`DB\`，数据库选择 \`family-growth-db\`，之后重新部署。以实际项目构建日志和环境配置为准。
-5. 部署成功后访问 Cloudflare 分配的 \`https://<项目名>.pages.dev\`。再访问 \`/api/state\`：正常情况下会返回 \`"ok":true\`。首次访问时 Pages Function 自动建表、把版本化 JSON 数据同步到 D1，无需手工执行 SQL。
+## 双向同步触发
 
-**不要在 GitHub 公开仓库上传 Token、密码、身份资料或不希望公开的内容。** 当前方案是公开展示，工作台里出现的资料均应视为公开。
+**ChatGPT → GitHub**：仅当用户明确说“同步成长工作台”或明确要求同步时更新。普通聊天不会自动写入。
 
-## 二、代码及数据
+**网站 → D1 → GitHub**：仅在网页点击具体表单的“提交”按钮时发生。输入、切换页面、浏览记录都不会写入。
 
-- \`public/index.html\`、\`style.css\`、\`app.js\`：响应式工作台，包含对话档案、成长时间线、真实趋势图和计划报告。
-- \`public/data/workbench.json\`：**唯一权威业务数据来源**，由 ChatGPT 按需同步或由专门调度任务更新；网页不直接写入这里。
-- \`functions/api/state.js\`：Cloudflare Pages 只读接口。比较原始数据的 SHA-256，变更后事务式同步到 D1。
-- \`schema.sql\`：可读数据库模式，代码中的首次自动建表逻辑与之对应。
-- \`wrangler.toml\`：Pages 输出路径及已创建 D1 数据库绑定，数据库 ID 不是密钥。
+数据类 GitHub 提交使用 \`[CF-Pages-Skip]\` 前缀，从而不触发 Pages 重建。Cloudflare Pages 官方支持通过该提交前缀跳过部署。代码变更才正常部署。
 
-\`workbench.json\` 的数据类型：
+## 网站录入类型
 
-| 字段 | 用途 |
-| --- | --- |
-| \`conversations\` | 对话原文或摘要。必须用 \`source_kind\` 区分 \`verbatim\` 与 \`summary\`。 |
-| \`observations\` | 带时间、来源的家庭观察及待验证假设。 |
-| \`metrics\` | 真实量化数据（如科目成绩），不能补造数字。 |
-| \`plans\` | 建议稿、已确认的计划及状态。 |
-| \`reports\` | ChatGPT 形成的分析和后续建议。 |
+1. 每日学校作业：按科目记录完成情况、题量、完成数、错题数、题型/知识点、订正情况和用时。
+2. 额外作业：科目、内容、计划/完成题量、错题、用时、独立程度。
+3. 考试成绩：一次考试可录入多科成绩、满分、错题数、主要错因及可选排名。
+4. 老师反馈：科目/来源、反馈类型、反馈内容和后续处理。
 
-修改 JSON 后，Cloudflare Pages 的 GitHub 集成会自动构建。网站打开、返回前台、手动刷新，以及持续打开时每五分钟会尝试获取已同步的最新数据。
+趋势页会从真实记录自动派生考试得分率、额外作业完成题量/错题率/用时、学校作业错题数/用时。只有一条数据时只展示单点说明，不强行判断趋势。
 
-## 三、数据和对话的边界
+## 首次启用网站写入
 
-- 目前已经导入**概括性摘要**，不是此前完整对话逐字稿；未录入具体考试分数。
-- 你继续在 ChatGPT 中交流，提出“同步成长工作台”时，我可在可访问范围内整理新增资料并通过 GitHub 连接更新数据。
-- **不会自动获取所有未同步的 ChatGPT 消息**；定时分析只能基于已同步到 GitHub 的记录。
-- 目前 API 无匿名写入功能。未来要从工作台直接提交记录，须增加身份验证、冲突解决和 GitHub 回写机制。
-- 如果 D1 尚未就绪，前端会回退显示当前部署版本的静态 JSON，并明确标注“静态备份”。
+Cloudflare Pages 项目需要两个 Secret：
 
-## 四、费用与运行
+- \`GITHUB_TOKEN\`：GitHub Fine-grained personal access token，仅授权 \`sunkai-hit/family-growth\`，Repository permissions → Contents: Read and write。
+- \`WORKBENCH_WRITE_KEY\`：用户自己设置的一段编辑码。工作台公开可读，但提交新记录必须提供这个编辑码。
 
-本设计采用 GitHub 与 Cloudflare 的免费方案为目标，不需要 OpenAI API 或常开的个人电脑。实际免费额度和服务政策以各服务提供方当前公布的为准。Cloudflare 首次 GitHub 授权和网站项目关联需要账号所有人完成，后续网站代码及数据更新可通过 GitHub 执行。
+Cloudflare Dashboard 路径：Workers & Pages → family-growth → Settings → Variables and Secrets → Add。类型选择 Secret / Encrypt。
+
+Secret 必须在使用它的部署之前配置。配置后重新部署一次当前 production deployment。
+
+不要把 Token 或编辑码写进 GitHub、截图发到聊天里，或提交到任何前端文件。
+
+## 免费额度设计
+
+数据提交不触发 Pages 构建，因此日常使用主要消耗少量 Workers 请求、D1 行读写和 GitHub REST API 请求。一个网页提交通常产生一条 D1 业务记录（另有少量状态更新）和约两次 GitHub API 请求；失败的待归档记录会在下一次正常提交时批量补同步。
+
+网站本身不会把记录直接“注入”某个 ChatGPT 会话。ChatGPT 后续通过 GitHub 读取 \`data/records.json\` 获取网站录入内容。
+
+## 数据边界
+
+此仓库当前为公开仓库。所有同步进 GitHub 的内容都应视为公开信息。系统不会自动上传姓名、学校、联系方式等未明确准备公开的资料。
