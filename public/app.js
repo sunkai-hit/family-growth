@@ -132,8 +132,28 @@ async function submitRecord(which,button){
 document.querySelectorAll(".submit-record").forEach(b=>b.addEventListener("click",()=>submitRecord(b.dataset.submit,b)));
 $("add-daily-subject").addEventListener("click",()=>addDailyRow(""));
 $("add-exam-subject").addEventListener("click",()=>addExamRow(""));
-$("save-edit-key").addEventListener("click",()=>{const k=value("edit-key");if(!k){flash("请输入编辑码。","warn");return}localStorage.setItem("family-growth-edit-key",k);flash("编辑码已保存到当前浏览器。","ok")});
-$("clear-edit-key").addEventListener("click",()=>{localStorage.removeItem("family-growth-edit-key");$("edit-key").value="";flash("当前设备保存的编辑码已清除。","ok")});
+function updateEditKeyUI(editing=false){
+  const saved=!!localStorage.getItem("family-growth-edit-key");
+  $("edit-key-saved").hidden=!saved||editing;
+  $("edit-key-editor").hidden=saved&&!editing;
+  $("cancel-edit-key").hidden=!saved;
+  if(!editing)$("edit-key").value="";
+}
+$("save-edit-key").addEventListener("click",()=>{
+  const k=value("edit-key");
+  if(!k){flash("请输入编辑码。","warn");return}
+  localStorage.setItem("family-growth-edit-key",k);
+  updateEditKeyUI(false);
+  flash("编辑权限已保存到当前浏览器。以后不会在页面上显示编辑码。","ok")
+});
+$("change-edit-key").addEventListener("click",()=>{updateEditKeyUI(true);$("edit-key").focus()});
+$("cancel-edit-key").addEventListener("click",()=>{updateEditKeyUI(false)});
+$("clear-edit-key").addEventListener("click",()=>{
+  localStorage.removeItem("family-growth-edit-key");
+  $("edit-key").value="";
+  updateEditKeyUI(false);
+  flash("当前设备保存的编辑码已清除。下次提交前需要重新输入。","ok")
+});
 $("record-filter-type").addEventListener("change",ledger);$("record-filter-date").addEventListener("change",ledger);
 $("clear-record-filter").addEventListener("click",()=>{$("record-filter-type").value="";$("record-filter-date").value="";ledger()});
 
@@ -201,5 +221,5 @@ document.addEventListener("visibilitychange",()=>{if(!document.hidden)load()});s
 
 ["daily-date","extra-date","exam-date","feedback-date"].forEach(id=>$(id).value=localDate());
 DEFAULT_SUBJECTS.forEach(addDailyRow);["语文","数学","英语"].forEach(addExamRow);
-$("edit-key").value=localStorage.getItem("family-growth-edit-key")||"";
+updateEditKeyUI(false);
 section((location.hash||"#home").slice(1));load();
