@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#193833">
+  <meta name="description" content="同频——以持续对话为中心的家庭成长工作台">
+  <title>同频 · 家庭成长工作台</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<div class="shell">
+  <aside class="sidebar">
+    <div class="brand"><div class="brand-mark">同</div><div><strong>同频</strong><small>家庭成长工作台</small></div></div>
+    <span class="sidebar-label">个人空间</span>
+    <nav aria-label="工作台导航">
+      <button class="nav active" data-page="home"><span>◈</span> 成长总览</button>
+      <button class="nav" data-page="conversations"><span>▤</span> 对话档案</button>
+      <button class="nav" data-page="timeline"><span>◷</span> 成长时间线</button>
+      <button class="nav" data-page="trends"><span>⌁</span> 趋势分析</button>
+      <button class="nav" data-page="plans"><span>☑</span> 计划与报告</button>
+    </nav>
+    <div class="sidebar-foot"><span class="online-dot"></span> GitHub + Cloudflare D1 <small>此站只展示已同步的讨论。<br>继续在 ChatGPT 中交流。</small></div>
+  </aside>
+  <main class="main">
+    <header class="heading">
+      <div><span class="eyebrow">FAMILY GROWTH WORKSPACE</span><h1 id="section-title">和成长，保持同频。</h1><p id="section-subtitle">对话驱动的成长档案，让讨论形成长期积累。</p></div>
+      <div class="heading-actions"><span id="sync-status" class="status">● 正在读取云端</span><button id="refresh" class="button pale" type="button">↻ 刷新</button></div>
+    </header>
+    <div id="notice" class="notice" role="status" hidden></div>
+
+    <section class="page active" id="page-home">
+      <div class="hero">
+        <div><span class="eyebrow">UNDERSTAND · SUPPORT · GROW</span><h2>先理解变化，<br>再决定下一步。</h2><p>保留讨论过的事实、需要验证的推测与行动建议。趋势图只基于真实记录，不把教育问题简单归结为一个分数。</p><button class="button dark" data-goto="conversations">查看已同步对话 ↗</button></div>
+        <div class="hero-art"><div class="art-ring"></div><div class="art-core"><span>观察</span><span>理解</span><span>行动</span></div></div>
+      </div>
+      <div class="stats">
+        <div class="stat"><span>已归档对话</span><strong id="count-conversations">—</strong><small>原文与摘要分别标记</small></div>
+        <div class="stat"><span>观察与假设</span><strong id="count-observations">—</strong><small>标明事实与推测</small></div>
+        <div class="stat"><span>量化记录</span><strong id="count-metrics">—</strong><small>无数据时不绘制趋势</small></div>
+        <div class="stat"><span>待跟进计划</span><strong id="count-plans">—</strong><small>建议不等于已执行</small></div>
+      </div>
+      <div class="split">
+        <article class="panel"><div class="panel-title"><div><span class="eyebrow">CONVERSATIONS</span><h3>最近讨论</h3></div><button class="text-button" data-goto="conversations">全部对话 ↗</button></div><div id="home-conversations"></div></article>
+        <article class="panel"><div class="panel-title"><div><span class="eyebrow">OBSERVATIONS</span><h3>近期观察</h3></div><button class="text-button" data-goto="timeline">时间线 ↗</button></div><div id="home-observations"></div></article>
+      </div>
+      <article class="panel discussion">
+        <div><h3>继续我们的讨论</h3><p>工作台用于查看和分析资料；真正的交流依然在原来的 ChatGPT 中进行。</p></div>
+        <div class="actions"><button id="copy-context" class="button pale">复制讨论背景</button><a class="button dark" href="https://chatgpt.com/" target="_blank" rel="noopener noreferrer">打开 ChatGPT ↗</a></div>
+      </article>
+    </section>
+
+    <section class="page" id="page-conversations">
+      <div class="section-intro"><h2>对话档案</h2><p>还原讨论过程；摘要会明确标注，不会冒充逐字对话。</p></div>
+      <div class="toolbar"><label>查找 <input type="search" id="chat-search" placeholder="搜索对话内容…" autocomplete="off"></label><span id="chat-total"></span></div>
+      <article class="panel"><div id="conversation-list"></div></article>
+    </section>
+
+    <section class="page" id="page-timeline">
+      <div class="section-intro"><h2>成长时间线</h2><p>将家庭反馈和待验证的分析假设分别保留，方便回看。</p></div>
+      <div class="timeline" id="timeline-list"></div>
+    </section>
+
+    <section class="page" id="page-trends">
+      <div class="section-intro"><h2>趋势分析</h2><p>只依据持续录入的真实数据，不将时间上的同时变化简单认定为因果。</p></div>
+      <article class="panel">
+        <div class="panel-title"><h3>时间趋势</h3><label class="indicator">指标 <select id="metric-select"><option>暂无指标</option></select></label></div>
+        <div id="chart" class="chart-region"></div>
+      </article>
+    </section>
+
+    <section class="page" id="page-plans">
+      <div class="section-intro"><h2>计划与报告</h2><p>将建议稿、已确认的计划与实际执行结果区分开。</p></div>
+      <div class="split"><article class="panel"><div class="panel-title"><h3>计划</h3></div><div id="plans-list"></div></article><article class="panel"><div class="panel-title"><h3>分析报告</h3></div><div id="reports-list"></div></article></div>
+    </section>
+    <footer><span>同频 · 家庭成长工作台</span><span>数据由 GitHub 归档，经 Cloudflare D1 呈现</span></footer>
+  </main>
+</div>
+<script src="/app.js" defer></script>
+</body>
+</html>
