@@ -1,0 +1,8 @@
+name = "family-growth"
+compatibility_date = "2026-09-30"
+pages_build_output_dir = "./public"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "family-growth-db"
+database_id = "295cee7f-f64a-464b-aebc-bd289ac12e1d"
