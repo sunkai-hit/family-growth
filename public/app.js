@@ -4,6 +4,8 @@ const state={
   page:"home",
   recordTab:"daily",
   detailReturn:"home",
+  authToken:null,
+  device:null,
   pages:{records:1,conversations:1,timeline:1,plans:1,reports:1}
 };
 const PAGE_SIZE={records:10,conversations:6,timeline:8,plans:5,reports:5};
@@ -35,6 +37,193 @@ const FIXED_METRICS=[
   {id:"extra_duration",label:"额外学习用时",unit:"分钟",help:"当日额外学习用时合计"},
   {id:"exam_score_rate",label:"考试得分率",unit:"%",help:"得分 ÷ 满分"}
 ];
+const AUTH_DB_NAME="family-growth-device-v1";
+const AUTH_DB_STORE="device";
+const AUTH_PENDING_KEY="family-growth-pending-auth-v1";
+let authPollTimer=null;
+
+function openDeviceDb(){
+  return new Promise((resolve,reject)=>{
+    const req=indexedDB.open(AUTH_DB_NAME,1);
+    req.onupgradeneeded=()=>{if(!req.result.objectStoreNames.contains(AUTH_DB_STORE))req.result.createObjectStore(AUTH_DB_STORE,{keyPath:"id"})};
+    req.onsuccess=()=>resolve(req.result);
+    req.onerror=()=>reject(req.error);
+  });
+}
+async function readIdentity(){
+  const db=await openDeviceDb();
+  return new Promise((resolve,reject)=>{
+    const tx=db.transaction(AUTH_DB_STORE,"readonly");
+    const req=tx.objectStore(AUTH_DB_STORE).get("identity");
+    req.onsuccess=()=>resolve(req.result||null);
+    req.onerror=()=>reject(req.error);
+  });
+}
+async function saveIdentity(identity){
+  const db=await openDeviceDb();
+  return new Promise((resolve,reject)=>{
+    const tx=db.transaction(AUTH_DB_STORE,"readwrite");
+    tx.objectStore(AUTH_DB_STORE).put(identity);
+    tx.oncomplete=()=>resolve(identity);
+    tx.onerror=()=>reject(tx.error);
+  });
+}
+async function ensureIdentity(){
+  const existing=await readIdentity();
+  if(existing?.device_id&&existing?.private_key&&existing?.public_key)return existing;
+  const pair=await crypto.subtle.generateKey({name:"ECDSA",namedCurve:"P-256"},false,["sign","verify"]);
+  const identity={
+    id:"identity",
+    device_id:"dev_"+crypto.randomUUID().replace(/-/g,""),
+    private_key:pair.privateKey,
+    public_key:pair.publicKey,
+    created_at:new Date().toISOString()
+  };
+  return saveIdentity(identity);
+}
+function arrayBufferToBase64Url(buf){
+  const bytes=new Uint8Array(buf);let bin="";
+  for(const b of bytes)bin+=String.fromCharCode(b);
+  return btoa(bin).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
+}
+function pendingAuth(){
+  try{return JSON.parse(localStorage.getItem(AUTH_PENDING_KEY)||"null")}catch{return null}
+}
+function setPendingAuth(v){
+  if(v)localStorage.setItem(AUTH_PENDING_KEY,JSON.stringify(v));
+  else localStorage.removeItem(AUTH_PENDING_KEY);
+}
+function showAuthView(name){
+  for(const id of ["auth-checking","auth-request","auth-pending"])$(id).hidden=id!=="auth-"+name;
+}
+function authMessage(text,kind=""){
+  const el=$("auth-message");
+  if(!text){el.hidden=true;el.textContent="";el.className="auth-message";return}
+  el.hidden=false;el.textContent=text;el.className="auth-message "+kind;
+}
+function defaultDeviceLabel(){
+  const ua=navigator.userAgent;
+  const browser=/Edg\//.test(ua)?"Edge":/Chrome\//.test(ua)?"Chrome":/Safari\//.test(ua)?"Safari":/Firefox\//.test(ua)?"Firefox":"浏览器";
+  const os=/Windows/.test(ua)?"Windows":/Mac OS/.test(ua)?"Mac":/Android/.test(ua)?"Android":/iPhone|iPad/.test(ua)?"iPhone/iPad":"设备";
+  return os+" · "+browser;
+}
+async function protectedFetch(url,options={}){
+  if(!state.authToken)throw Error("设备会话未建立");
+  const headers=new Headers(options.headers||{});
+  headers.set("Authorization","Bearer "+state.authToken);
+  return fetch(url,{...options,headers});
+}
+async function verifyExistingSession(){
+  const token=sessionStorage.getItem("family-growth-session");
+  if(!token)return false;
+  try{
+    const res=await fetch("/api/auth/me",{headers:{Authorization:"Bearer "+token},cache:"no-store"});
+    const out=await res.json();
+    if(!res.ok||!out.ok)return false;
+    state.authToken=token;state.device=out.device;return true;
+  }catch{return false}
+}
+async function establishDeviceSession(identity){
+  const challengeRes=await fetch("/api/auth/challenge",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({device_id:identity.device_id})});
+  const challenge=await challengeRes.json();
+  if(!challengeRes.ok||!challenge.ok)throw Error(challenge.error||"设备尚未授权");
+  const signature=await crypto.subtle.sign({name:"ECDSA",hash:"SHA-256"},identity.private_key,new TextEncoder().encode(challenge.challenge));
+  const sessionRes=await fetch("/api/auth/session",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
+    device_id:identity.device_id,
+    challenge_id:challenge.challenge_id,
+    signature:arrayBufferToBase64Url(signature)
+  })});
+  const session=await sessionRes.json();
+  if(!sessionRes.ok||!session.ok)throw Error(session.error||"设备验证失败");
+  state.authToken=session.token;state.device=session.device;
+  sessionStorage.setItem("family-growth-session",session.token);
+  return true;
+}
+async function unlockWorkbench(){
+  if(authPollTimer){clearInterval(authPollTimer);authPollTimer=null}
+  $("auth-gate").hidden=true;
+  $("app-shell").hidden=false;
+  $("device-status").textContent="✓ "+(state.device?.label||"已授权设备");
+  await load();
+}
+function showPending(p){
+  $("auth-request-code").textContent=p.request_code;
+  $("auth-pending-meta").textContent=(p.label||"当前设备")+" · 有效至 "+new Date(p.expires_at).toLocaleTimeString("zh-CN",{hour:"2-digit",minute:"2-digit"});
+  showAuthView("pending");
+  authMessage("");
+  if(authPollTimer)clearInterval(authPollTimer);
+  authPollTimer=setInterval(()=>checkAuthorization(false),8000);
+}
+async function checkAuthorization(manual=true){
+  const p=pendingAuth();
+  if(!p){showAuthView("request");return}
+  try{
+    const res=await fetch("/api/auth/status?code="+encodeURIComponent(p.request_code)+"&device_id="+encodeURIComponent(p.device_id),{cache:"no-store"});
+    const out=await res.json();
+    if(!res.ok||!out.ok)throw Error(out.error||"授权状态读取失败");
+    if(out.status==="approved"){
+      if(authPollTimer){clearInterval(authPollTimer);authPollTimer=null}
+      const identity=await readIdentity();
+      if(!identity||identity.device_id!==p.device_id)throw Error("本机设备身份已变化，需要重新申请");
+      await establishDeviceSession(identity);
+      setPendingAuth(null);
+      await unlockWorkbench();
+      return;
+    }
+    if(out.status==="expired"||out.status==="rejected"||out.status==="revoked"){
+      setPendingAuth(null);
+      showAuthView("request");
+      authMessage(out.status==="expired"?"授权申请已过期，请重新申请。":out.status==="rejected"?"本次设备申请未获批准。":"此设备授权已撤销。","error");
+      return;
+    }
+    if(manual)authMessage("尚未检测到 GPT 批准，请先在 ChatGPT 中发送上面的授权命令。","info");
+  }catch(error){
+    if(manual)authMessage(error.message,"error");
+  }
+}
+async function requestDeviceAuthorization(){
+  const button=$("request-device-auth"),edit=$("auth-edit-code").value,label=$("device-label").value.trim()||defaultDeviceLabel();
+  if(!edit){authMessage("请输入编辑码后再申请。","error");return}
+  button.disabled=true;button.textContent="正在申请…";authMessage("");
+  try{
+    const identity=await ensureIdentity();
+    const publicJwk=await crypto.subtle.exportKey("jwk",identity.public_key);
+    const res=await fetch("/api/auth/request",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
+      edit_code:edit,device_id:identity.device_id,label,public_jwk:publicJwk
+    })});
+    const out=await res.json();
+    $("auth-edit-code").value="";
+    if(!res.ok||!out.ok)throw Error(out.error||"无法申请设备授权");
+    const pending={request_code:out.request_code,expires_at:out.expires_at,device_id:identity.device_id,label};
+    setPendingAuth(pending);showPending(pending);
+  }catch(error){authMessage(error.message,"error")}
+  finally{button.disabled=false;button.textContent="申请设备授权"}
+}
+async function bootstrapAuthorization(){
+  localStorage.removeItem("family-growth-edit-key");
+  $("app-shell").hidden=true;$("auth-gate").hidden=false;showAuthView("checking");authMessage("");
+  $("device-label").value=defaultDeviceLabel();
+  if(await verifyExistingSession()){await unlockWorkbench();return}
+  sessionStorage.removeItem("family-growth-session");state.authToken=null;state.device=null;
+  let identity=null;
+  try{identity=await readIdentity()}catch(_){}
+  if(identity){
+    try{
+      await establishDeviceSession(identity);
+      await unlockWorkbench();return;
+    }catch(_){}
+  }
+  const pending=pendingAuth();
+  if(pending&&pending.device_id===identity?.device_id&&new Date(pending.expires_at)>new Date()){
+    showPending(pending);await checkAuthorization(false);return;
+  }
+  if(pending)setPendingAuth(null);
+  showAuthView("request");
+}
+$("request-device-auth").addEventListener("click",requestDeviceAuthorization);
+$("check-auth-status").addEventListener("click",()=>checkAuthorization(true));
+$("cancel-auth-request").addEventListener("click",()=>{setPendingAuth(null);if(authPollTimer){clearInterval(authPollTimer);authPollTimer=null}showAuthView("request");authMessage("")});
+
 
 function elem(tag,className,value){
   const e=document.createElement(tag);
@@ -289,8 +478,7 @@ function buildPlanProgressForm(plan,latest){
   grid.append(dateLabel,statusLabel,pctLabel,noteLabel);form.append(grid);
   const actions=elem("div","form-actions"),submit=elem("button","button dark","提交完成情况");submit.type="button";
   submit.addEventListener("click",async()=>{
-    const key=localStorage.getItem("family-growth-edit-key")||"";
-    if(!key){flash("请先到“今日记录”页面底部保存编辑码。","warn");return}
+    if(!state.authToken){flash("当前设备授权会话已失效，请刷新页面重新验证。","warn");return}
     const percent=Number(pct.value);
     if(!Number.isFinite(percent)||percent<0||percent>100){flash("完成度请输入 0—100。","warn");return}
     submit.disabled=true;submit.textContent="提交中…";
@@ -298,7 +486,7 @@ function buildPlanProgressForm(plan,latest){
       await postRecord({
         id:uid(),type:"plan_progress",record_date:date.value,
         payload:{plan_id:plan.id,status:status.value,completion_percent:percent,note:note.value.trim()}
-      },key);
+      });
       flash("计划完成情况已保存，并自动归档到 GitHub。","ok");
       await load();
       const fresh=state.data.plans.find(x=>x.id===plan.id);
@@ -404,23 +592,23 @@ function buildSubmission(which){
   if(which==="feedback")return{type:"teacher_feedback",record_date:value("feedback-date"),payload:{subject:value("feedback-subject"),source:value("feedback-source"),category:$("feedback-category").value,content:value("feedback-content"),follow_up:value("feedback-follow")}};
   throw Error("未知记录类型");
 }
-async function postRecord(body,key){
-  const res=await fetch("/api/records",{method:"POST",headers:{"Content-Type":"application/json","X-Workbench-Key":key},body:JSON.stringify(body)});
+async function postRecord(body){
+  const res=await protectedFetch("/api/records",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
   const out=await res.json();
+  if(res.status===401){state.authToken=null;sessionStorage.removeItem("family-growth-session");throw Error("设备授权会话已失效，请刷新页面")}
   if(!res.ok||!out.ok)throw Error(out.error||"提交失败");
   return out;
 }
 async function submitRecord(which,button){
-  const key=localStorage.getItem("family-growth-edit-key")||value("edit-key");
-  if(!key){flash("请先在本页底部输入编辑码并保存到本机。","warn");return}
+  if(!state.authToken){flash("当前设备授权会话已失效，请刷新页面重新验证。","warn");return}
   let body;
   try{body={id:uid(),...buildSubmission(which)}}catch(error){flash(error.message,"error");return}
   button.disabled=true;const old=button.textContent;button.textContent="提交中…";clearFlash();
   try{
-    const out=await postRecord(body,key);
-    if(out.record?.sync_status==="synced")flash("记录已保存到 D1，并自动归档到 GitHub。","ok");
-    else if(out.github?.reason==="github_not_configured")flash("记录已保存到 D1；GitHub 写入凭证尚未配置，因此当前显示“待归档”。","warn");
-    else flash("记录已保存到 D1，但本次 GitHub 自动归档失败；下一次提交会自动重试待归档记录。","warn");
+    const out=await postRecord(body);
+    if(out.record?.sync_status==="synced")flash("记录已保存到 D1，并自动归档到私有 GitHub 数据仓库。","ok");
+    else if(out.github?.reason==="github_not_configured")flash("记录已保存到 D1；私有 GitHub 数据仓库凭证尚未配置。","warn");
+    else flash("记录已保存到 D1，但本次私有 GitHub 归档失败；下一次提交会自动重试。","warn");
     await load();
   }catch(error){flash("提交失败："+error.message,"error")}
   finally{button.disabled=false;button.textContent=old}
@@ -428,28 +616,6 @@ async function submitRecord(which,button){
 document.querySelectorAll(".submit-record").forEach(b=>b.addEventListener("click",()=>submitRecord(b.dataset.submit,b)));
 $("add-daily-subject").addEventListener("click",()=>addDailyRow(""));
 $("add-exam-subject").addEventListener("click",()=>addExamRow(""));
-
-function updateEditKeyUI(editing=false){
-  const saved=!!localStorage.getItem("family-growth-edit-key");
-  $("edit-key-saved").hidden=!saved||editing;
-  $("edit-key-editor").hidden=saved&&!editing;
-  $("cancel-edit-key").hidden=!saved;
-  const panel=document.querySelector(".edit-access");
-  if(panel)panel.classList.toggle("saved",saved&&!editing);
-  if(!editing)$("edit-key").value="";
-}
-$("save-edit-key").addEventListener("click",()=>{
-  const k=value("edit-key");
-  if(!k){flash("请输入编辑码。","warn");return}
-  localStorage.setItem("family-growth-edit-key",k);updateEditKeyUI(false);
-  flash("编辑权限已保存到当前浏览器。以后默认只显示一行状态。","ok");
-});
-$("change-edit-key").addEventListener("click",()=>{updateEditKeyUI(true);$("edit-key").focus()});
-$("cancel-edit-key").addEventListener("click",()=>updateEditKeyUI(false));
-$("clear-edit-key").addEventListener("click",()=>{
-  localStorage.removeItem("family-growth-edit-key");$("edit-key").value="";updateEditKeyUI(false);
-  flash("当前设备保存的编辑码已清除。下次提交前需要重新输入。","ok");
-});
 $("record-filter-type").addEventListener("change",()=>{state.pages.records=1;ledger()});
 $("record-filter-date").addEventListener("change",()=>{state.pages.records=1;ledger()});
 $("clear-record-filter").addEventListener("click",()=>{$("record-filter-type").value="";$("record-filter-date").value="";state.pages.records=1;ledger()});
@@ -565,22 +731,24 @@ async function copyBackground(){
   flash("已复制最新讨论背景和结构化记录，可粘贴到 ChatGPT 继续分析。","ok");
 }
 async function load(){
-  const status=$("sync-status");status.textContent="● 正在读取云端";status.classList.remove("warning");
-  let data,staticFallback=false;
+  if(!state.authToken)return;
+  const status=$("sync-status");status.textContent="● 正在读取私有数据";status.classList.remove("warning");
   try{
-    const res=await fetch("/api/state",{cache:"no-store"});data=await res.json();
-    if(!res.ok||!data.ok)throw Error(data.error||"API unavailable");
-  }catch(error){
-    try{
-      const res=await fetch("/data/workbench.json",{cache:"no-store"});if(!res.ok)throw Error();
-      data=await res.json();data.records=[];staticFallback=true;
-    }catch{
-      status.textContent="● 数据读取失败";status.classList.add("warning");flash("无法读取云端数据，请稍后刷新。","error");return;
+    const res=await protectedFetch("/api/state",{cache:"no-store"});
+    const data=await res.json();
+    if(res.status===401){
+      state.authToken=null;sessionStorage.removeItem("family-growth-session");
+      $("app-shell").hidden=true;$("auth-gate").hidden=false;
+      await bootstrapAuthorization();return;
     }
+    if(!res.ok||!data.ok)throw Error(data.error||"API unavailable");
+    state.data=data;state.device=data.device||state.device;render();
+    $("device-status").textContent="✓ "+(state.device?.label||"已授权设备");
+    status.textContent="● 私有数据已同步";
+  }catch(error){
+    status.textContent="● 数据读取失败";status.classList.add("warning");
+    flash("无法读取私有云端数据："+error.message,"error");
   }
-  state.data=data;render();
-  status.textContent=staticFallback?"● 展示静态备份":"● D1 已同步";status.classList.toggle("warning",staticFallback);
-  if(staticFallback)flash("D1 暂不可用，目前只展示部署时的静态对话数据。","warn");
 }
 
 $("chat-search").addEventListener("input",()=>{state.pages.conversations=1;renderDiscussions()});
@@ -590,13 +758,12 @@ $("metric-select").addEventListener("change",chart);
 $("subject-select").addEventListener("change",chart);
 $("copy-context").addEventListener("click",copyBackground);
 $("refresh").addEventListener("click",load);
-document.addEventListener("visibilitychange",()=>{if(!document.hidden)load()});
-setInterval(()=>{if(!document.hidden)load()},300000);
+document.addEventListener("visibilitychange",()=>{if(!document.hidden&&state.authToken)load()});
+setInterval(()=>{if(!document.hidden&&state.authToken)load()},300000);
 
 ["daily-date","extra-date","exam-date","feedback-date"].forEach(id=>$(id).value=localDate());
 DEFAULT_SUBJECTS.forEach(addDailyRow);
 ["语文","数学","英语"].forEach(addExamRow);
-updateEditKeyUI(false);
 const initial=(location.hash||"#home").slice(1);
 section(sectionText[initial]?initial:"home");
-load();
+bootstrapAuthorization();
